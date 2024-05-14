@@ -32,13 +32,12 @@ router.post("/addTask", async (req, res) => {
 router.get("/getTasks", async (req, res) => {
   try {
     const { uuId } = req.body;
-    console.log("🚀 ~ router.get ~ uuId:", uuId);
+
     if (!uuId) {
       return res.status(400).json({ error: "UUID is required" });
     }
 
     const taskData = await Task.find({ uuId });
-    console.log("🚀 ~ router.get ~ taskData:", taskData);
 
     res.json(taskData);
   } catch (error) {

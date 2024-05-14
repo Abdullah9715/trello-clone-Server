@@ -1,26 +1,23 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/user.js");
-
+const jwt = require("jsonwebtoken");
 // update Profile
-router.put("/updateProfile/:id", async (req, res) => {
-  const { id } = req.params;
-
-  if (!id) {
-    return res.status(404).json("id not found");
-  }
-
+router.put("/updateProfile", async (req, res) => {
   try {
-    const userData = req.body;
-    const updatedUser = await User.findOneAndUpdate({ _id: id }, userData, {
-      new: true,
-    });
-
-    if (!updatedUser) {
-      return res.status(404).json({ message: "Task not found" });
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const user = await User.findOne({ _id: decoded.id });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
-
-    res.json(updatedUser);
+    const { userName, email } = req.body;
+    if (userName) user.userName = userName;
+    if (email) user.email = email;
+    await user.save();
+    const updatedUser = await User.findOne({ email: user.email });
+    res.status(200).json(updatedUser);
   } catch (err) {
     console.error("Update error:", err);
     res.status(500).json({ message: "Internal Server Error" });
@@ -29,11 +26,17 @@ router.put("/updateProfile/:id", async (req, res) => {
 
 router.get("/getUser", async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
-    res.json(user);
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.status(200).json(user);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.log("error : ", error);
+    res.status(500).json({ error: "Something went wrong!" });
   }
 });
 
